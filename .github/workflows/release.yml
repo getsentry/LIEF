@@ -1,0 +1,92 @@
+name: 'Release Python Wheels'
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Wait for platform builds to complete
+      # Adjust time based on how long your builds take (usually 60-90 min)
+      - name: Wait for builds to complete
+        run: |
+          echo "Waiting 90 minutes for all platform builds..."
+          echo "Started at: $(date)"
+          sleep 5400
+          echo "Finished waiting at: $(date)"
+
+      # Download Linux x86-64 wheels (most common for servers/CI)
+      - name: Download Linux x86-64 wheels
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: linux-x86-64.yml
+          commit: ${{ github.sha }}
+          name_is_regexp: true
+          name: 'linux-x86-64-python.*-wheel'
+          path: ./wheels
+        continue-on-error: true
+
+      # Download macOS wheels (for local development)
+      - name: Download macOS x64 wheels
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: osx.yml
+          commit: ${{ github.sha }}
+          name_is_regexp: true
+          name: 'osx-wheel-x64-.*'
+          path: ./wheels
+        continue-on-error: true
+
+      - name: Download macOS arm64 wheels
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: osx.yml
+          commit: ${{ github.sha }}
+          name_is_regexp: true
+          name: 'osx-wheel-arm64-.*'
+          path: ./wheels
+        continue-on-error: true
+
+      - name: Display downloaded wheels
+        run: |
+          echo "Python wheels to be released:"
+          find ./wheels -name "*.whl" -type f
+          echo ""
+          echo "Total wheels: $(find ./wheels -name "*.whl" -type f | wc -l)"
+
+      # Create release and upload wheels
+      - name: Create Release with Wheels
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./wheels/**/*.whl
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          body: |
+            ## Installation
+
+            Install directly from this release:
+            ```bash
+            pip install lief --find-links https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}
+            ```
+
+            Or install a specific wheel for your platform:
+            ```bash
+            # Linux x86-64, Python 3.12
+            pip install https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/lief-*-cp312-cp312-manylinux*.whl
+
+            # macOS arm64, Python 3.12
+            pip install https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/lief-*-cp312-cp312-macosx*arm64.whl
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
