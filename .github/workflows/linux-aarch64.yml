@@ -35,7 +35,7 @@ jobs:
             -v $GITHUB_WORKSPACE:/src                  \
             -v $RUNNER_TEMP/lief-install:/install      \
             -v $HOME/.ccache:/ccache                   \
-            liefproject/manylinux2014-aarch64          \
+            liefproject/manylinux_2_28_aarch64         \
             bash /src/scripts/docker/linux-sdk-aarch64
       - name: 'Upload SDK Artifact'
         uses: actions/upload-artifact@v4
@@ -96,7 +96,7 @@ jobs:
            -v $GITHUB_WORKSPACE:/src             \
            -v $HOME/.ccache:/ccache              \
            -v $RUNNER_TEMP/lief-install:/install \
-           liefproject/manylinux2014-aarch64     \
+           liefproject/manylinux_2_28_aarch64    \
            bash /src/scripts/docker/linux-py-aarch64
       - name: 'Artifact'
         uses: actions/upload-artifact@v4
